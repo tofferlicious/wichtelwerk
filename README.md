@@ -1,8 +1,41 @@
 # Wichtelwerk
 
-**Kleine Geste. Große Freude.**
+<p align="center">
+  <img src="static/images/gift-still-life.svg" width="240" alt="Wichtelwerk gift illustration in evergreen, cream and terracotta">
+</p>
 
 A small, self-hosted Secret Santa application with a German-language interface. Organize private gift exchanges, collect wishlists and reveal each person's recipient only in their own account. Built with Flask, SQLite and plain JavaScript; no frontend build step, analytics, external fonts or image services.
+
+## Screenshots
+
+Real application screens, captured locally with **synthetic demo data**. No production accounts, wishlists or assignments are shown.
+
+### Welcome
+
+![Wichtelwerk desktop welcome page with the gift illustration](docs/screenshots/home-desktop.png)
+
+### Your rounds
+
+![Organizer dashboard showing two synthetic gift exchanges](docs/screenshots/dashboard.png)
+
+### Your recipient and wishlist
+
+![Participant view showing a synthetic recipient and wishlist](docs/screenshots/recipient.png)
+
+<details>
+<summary>Mobile view</summary>
+
+<img src="docs/screenshots/mobile.png" width="320" alt="Mobile participant view with synthetic wishlist and recipient details">
+
+</details>
+
+Regenerate these screenshots using the development dependencies:
+
+```sh
+.venv/bin/python scripts/capture_screenshots.py
+```
+
+The script starts a disposable local instance, exercises the actual invitation and draw APIs, and uses memory-only email. It never connects to a production instance. Set `CHROME_PATH` if you want to use an existing Chromium installation.
 
 ## Features
 

@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 700" role="img" aria-labelledby="title desc">
-<title id="title">Eine kleine Geste</title><desc id="desc">Reduzierte Geschenkpakete in Tannengrün, Terrakotta und Creme mit feinen Zweigen.</desc>
-<style>:root{--paper:#ecebdc;--arch:#e1e4d4;--green:#214d43;--sage:#82977c;--cream:#f8f3e3;--rust:#a45743;--gold:#be9c58;--line:#476350} .paper{fill:var(--paper)}.arch{fill:var(--arch)}.green{fill:var(--green)}.sage{fill:var(--sage)}.cream{fill:var(--cream)}.rust{fill:var(--rust)}.gold{fill:var(--gold)}.branch{fill:none;stroke:var(--line);stroke-width:2;stroke-linecap:round}.ribbon{fill:none;stroke:var(--gold);stroke-width:5;stroke-linecap:round}.fine{fill:none;stroke:var(--cream);stroke-width:2;stroke-linecap:round}</style>
+<title id="title">Wichtelwerk – stilisierte Geschenke</title><desc id="desc">Zwei Geschenkpakete mit klaren Schleifen und einem Anhänger, eingerahmt von feinen Zweigen in Tannengrün, Terrakotta und Creme.</desc>
+<style>:root{--paper:#ecebdc;--arch:#e1e4d4;--green:#214d43;--sage:#82977c;--cream:#f8f3e3;--rust:#a45743;--gold:#be9c58;--line:#476350} .paper{fill:var(--paper)}.arch{fill:var(--arch)}.green{fill:var(--green)}.sage{fill:var(--sage)}.cream{fill:var(--cream)}.rust{fill:var(--rust)}.gold{fill:var(--gold)}.branch{fill:none;stroke:var(--line);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.ribbon{fill:none;stroke:var(--gold);stroke-width:5;stroke-linecap:round}.bow{fill:none;stroke:var(--rust);stroke-width:4;stroke-linecap:round;stroke-linejoin:round}.twine{fill:none;stroke:var(--gold);stroke-width:3;stroke-linecap:round}</style>
 <path class="paper" d="M0 0h600v700H0z"/>
 <path class="arch" d="M116 564V264a184 184 0 0 1 368 0v300z"/>
 <path class="branch" d="M67 586h466M101 517c-21-78-30-161-13-228m-4 79-29-32m28 11 25-30m-26 66-31-27m33 8 25-28m-21 72-34-22m37 6 25-24m-18 73-35-18m39 2 24-23"/>
@@ -13,11 +13,10 @@
 <path class="green" d="M255 394h223v185H255z"/>
 <path class="sage" d="M249 379h235v29H249z"/>
 <path class="rust" d="M346 379h31v200h-31z"/>
-<path class="fine" d="M361 380c-50-20-69-51-47-60 24-9 48 36 47 60Zm0 0c44-29 55-60 34-65-20-4-32 37-34 65Z"/>
+<path class="bow" d="M361 379c-21-35-50-51-56-33-6 17 27 32 56 33Zm0 0c12-36 35-57 45-40 10 17-17 36-45 40Z"/>
 <path class="cream" d="m387 423 40 13-15 46-40-13z"/>
 <circle class="gold" cx="397" cy="437" r="3"/>
-<path class="ribbon" d="m373 403 24 31"/>
+<path class="twine" d="m373 403 24 31"/>
 </g>
 <path class="branch" d="M420 275c30-37 47-83 50-131m-8 56-24-7m27-8 19-16m-27 49-25-5m20 18 25-14m-34 31-26-2m19 15 27-9"/>
-<path class="rust" d="M164 193h28v2h-28z"/><circle class="gold" cx="405" cy="115" r="5"/>
 </svg>

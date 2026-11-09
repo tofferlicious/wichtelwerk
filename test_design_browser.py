@@ -51,10 +51,13 @@ def test_creator_controls_and_stylized_art(tmp_path):
                     context.add_cookies([{'name':'ww_session','value':client.get_cookie('ww_session').value,'url':url}])
                     page = context.new_page()
                     page.on('pageerror', lambda error: errors.append(str(error)))
-                    for width in [1280,390]:
+                    for width in [1280,390,320]:
                         page.set_viewport_size({'width':width,'height':844})
                         page.goto(url+'/#dashboard')
                         expect(page.get_by_role('heading',name='Meine Wichtelrunden')).to_be_visible()
+                        for link in page.locator('.site-header a').all():
+                            box = link.bounding_box()
+                            assert box and box['x'] >= 0 and box['x']+box['width'] <= width, box
                         assert page.locator('a[href="#new"]').count() == (1 if creator else 0)
                         page.goto(url+'/#new')
                         if creator:

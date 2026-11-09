@@ -170,7 +170,7 @@ footer [data-credits] { max-width: 78ch; }
 .skip:focus-visible { top: var(--space-md); }
 .mobile-only { display: none; }
 @media (max-width: 760px) {
-  .site-header { width: calc(100% - (2 * var(--space-lg))); min-height: 68px; }
+  .site-header { width: calc(100% - (2 * var(--space-lg))); min-height: 68px; flex-wrap: wrap; gap: var(--space-xs) var(--space-md); padding-block: var(--space-sm); }
   .brand { font-size: 24px; }
   main, footer { width: calc(100% - (2 * var(--space-lg))); }
   main { padding-bottom: var(--space-2xl); }
