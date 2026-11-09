@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 500" role="img" aria-labelledby="title desc">
+<title id="title">Mit Sorgfalt schenken</title><desc id="desc">Eine stilisierte Geschenkkarte mit feinem Zweig auf einem tannengrünen Paket.</desc>
+<style>:root{--paper:#e7e7d8;--green:#214d43;--sage:#91a084;--cream:#f8f3e3;--gold:#be9c58;--rust:#a45743} .paper{fill:var(--paper)}.green{fill:var(--green)}.cream{fill:var(--cream)}.gold{fill:var(--gold)}.line{fill:none;stroke:var(--green);stroke-width:2;stroke-linecap:round}.string{fill:none;stroke:var(--gold);stroke-width:3}.sage{fill:var(--sage)}.rust{fill:var(--rust)}</style>
+<path class="paper" d="M0 0h600v500H0z"/>
+<g transform="rotate(-12 300 250)">
+<path class="green" d="M96 108h408v286H96z"/>
+<path class="sage" d="M96 157h408v25H96z"/>
+<path class="gold" d="M374 108h19v286h-19z"/>
+<path class="cream" d="M208 164h104l28 28v178H208z"/>
+<circle class="gold" cx="319" cy="184" r="5"/>
+<path class="string" d="M319 184c35-42 84-72 78-31-4 23-42 26-78 31Z"/>
+<path class="line" d="M251 324c10-33 24-67 45-99m-37 78-19-20m25 4 24-5m-17-10-16-18m24 1 22-4m-16-10-9-16"/>
+<path class="rust" d="M231 345h43v2h-43z"/>
+</g>
+</svg>
