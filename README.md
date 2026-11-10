@@ -6,6 +6,21 @@
 
 A small, self-hosted Secret Santa application with **German and English interfaces**, automatic browser-language detection and a manual language switch. Organize private gift exchanges, collect wishlists and reveal each person's recipient only in their own account. Built with Flask, SQLite and plain JavaScript; no frontend build step, analytics, external fonts or image services.
 
+## Try the demo
+
+[Open the read-only demo](https://tofferlicious.github.io/wichtelwerk/) to explore the real interface, switch German/English, and browse sample organizer and participant screens. The demo uses fictional data and runs entirely in your browser: **no real sign-in, emails, backend or saved form submissions**. Please do not enter personal information. Form submissions show a demo notice rather than pretending to save.
+
+The demo uses the same frontend files as the application, with a separate demo-only API adapter. To preview it locally, build into a new directory and serve it:
+
+```sh
+python3 scripts/build_demo.py _site
+python3 -m http.server 8000 --directory _site
+```
+
+## Automated checks
+
+GitHub Actions runs the Python and Chromium browser tests, lifecycle checks, JavaScript syntax checks, and a Docker build with an isolated container healthcheck on pushes and pull requests. The optional production/live test is intentionally excluded. After successful trusted pushes, it publishes the static demo to GitHub Pages. While this work is on the feature branch, both `feat/english-docker` and `main` are authorized demo sources; pull requests never deploy.
+
 ## Screenshots
 
 Real application screens, captured locally with **synthetic demo data**. No production accounts, wishlists or assignments are shown.
