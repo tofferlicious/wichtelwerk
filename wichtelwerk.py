@@ -5,11 +5,14 @@ import os
 import re
 import sqlite3
 import subprocess
+import smtplib
+import ssl
 import time
 from datetime import date, timedelta
 from email.message import EmailMessage
 from pathlib import Path
 from flask import Flask, g, request, jsonify, send_from_directory, abort
+from translations import translate
 
 
 def digest(value):
@@ -24,21 +27,42 @@ def create_app(config=None):
                       MAIL_FROM=os.environ.get('MAIL_FROM', 'wichtelwerk@example.invalid'),
                       PUBLIC_EVENT_CREATION=os.environ.get('PUBLIC_EVENT_CREATION', 'false'),
                       EVENT_CREATOR_EMAILS=os.environ.get('EVENT_CREATOR_EMAILS', ''),
-                      COOKIE_SECURE=True, MAX_CONTENT_LENGTH=32768)
+                      SMTP_HOST=os.environ.get('SMTP_HOST', ''),
+                      SMTP_PORT=os.environ.get('SMTP_PORT', '587'),
+                      SMTP_SECURITY=os.environ.get('SMTP_SECURITY', 'starttls'),
+                      SMTP_USERNAME=os.environ.get('SMTP_USERNAME', ''),
+                      SMTP_PASSWORD=os.environ.get('SMTP_PASSWORD', ''),
+                      COOKIE_SECURE=os.environ.get('COOKIE_SECURE', 'true'), MAX_CONTENT_LENGTH=32768)
     if config:
         app.config.update(config)
-    public = app.config['PUBLIC_EVENT_CREATION']
-    if isinstance(public, str) and public.strip().lower() in ('true', '1', 'yes', 'on', 'false', '0', 'no', 'off'):
-        public = public.strip().lower() in ('true', '1', 'yes', 'on')
-    if type(public) is not bool:
-        raise ValueError('PUBLIC_EVENT_CREATION must be true or false')
-    app.config['PUBLIC_EVENT_CREATION'] = public
+    for key in ('PUBLIC_EVENT_CREATION', 'COOKIE_SECURE'):
+        value = app.config[key]
+        if isinstance(value, str) and value.strip().lower() in ('true', '1', 'yes', 'on', 'false', '0', 'no', 'off'):
+            value = value.strip().lower() in ('true', '1', 'yes', 'on')
+        if type(value) is not bool:
+            raise ValueError(key + ' must be true or false')
+        app.config[key] = value
+    if app.config['MAIL_MODE'] == 'smtp':
+        try:
+            port = int(app.config['SMTP_PORT'])
+        except (TypeError, ValueError):
+            raise ValueError('SMTP_PORT must be an integer between 1 and 65535') from None
+        if not 1 <= port <= 65535:
+            raise ValueError('SMTP_PORT must be an integer between 1 and 65535')
+        app.config['SMTP_PORT'] = port
+        if not app.config['SMTP_HOST'] or app.config['SMTP_SECURITY'] not in ('starttls', 'ssl', 'none'):
+            raise ValueError('SMTP_HOST and SMTP_SECURITY (starttls, ssl or none) are required')
+        if bool(app.config['SMTP_USERNAME']) != bool(app.config['SMTP_PASSWORD']):
+            raise ValueError('SMTP_USERNAME and SMTP_PASSWORD must both be set or both be empty')
     creator_emails = {email.strip().lower() for email in app.config['EVENT_CREATOR_EMAILS'].split(',') if email.strip()}
     if app.config['MAIL_MODE'] == 'memory' and not app.config['TESTING']:
         raise RuntimeError('Memory mail is test-only')
     Path(app.config['DATABASE']).parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(app.config['DATABASE']) as conn:
         conn.executescript(Path(__file__).with_name('schema.sql').read_text())
+        conn.execute('BEGIN IMMEDIATE')
+        if 'language' not in {row[1] for row in conn.execute('PRAGMA table_info(users)')}:
+            conn.execute("ALTER TABLE users ADD COLUMN language TEXT CHECK(language IN ('de','en'))")
     os.chmod(app.config['DATABASE'], 0o600)
     app.extensions['outbox'] = []
 
@@ -77,6 +101,8 @@ def create_app(config=None):
 
     @app.before_request
     def session_and_csrf():
+        g.language = next((code.split('-')[0].lower() for code, quality in request.accept_languages
+                           if quality > 0 and code.split('-')[0].lower() in ('de', 'en')), 'de')
         if not request.path.startswith('/api/'):
             return
         now = int(time.time())
@@ -87,7 +113,7 @@ def create_app(config=None):
             g.new_cookie = secrets.token_urlsafe(32)
             db().execute('INSERT INTO sessions VALUES(?,NULL,?,?)', (digest(g.new_cookie), secrets.token_urlsafe(32), now + 3600))
             g.session = db().execute('SELECT * FROM sessions WHERE digest=?', (digest(g.new_cookie),)).fetchone()
-        g.user = db().execute('SELECT id,email,name FROM users WHERE id=?', (g.session['user_id'],)).fetchone()
+        g.user = db().execute('SELECT id,email,name,language FROM users WHERE id=?', (g.session['user_id'],)).fetchone()
         if request.method not in ('GET', 'HEAD', 'OPTIONS'):
             provided = request.headers.get('X-CSRF-Token', '')
             if not secrets.compare_digest(provided, g.session['csrf']):
@@ -120,7 +146,7 @@ def create_app(config=None):
     @app.errorhandler(429)
     @app.errorhandler(503)
     def error(exc):
-        return jsonify(error=exc.description), exc.code
+        return jsonify(error=translate(exc.description, getattr(g, 'language', 'de'))), exc.code
 
     def user():
         if not g.user:
@@ -163,22 +189,39 @@ def create_app(config=None):
         db().execute('INSERT OR IGNORE INTO users(email,name,created) VALUES(?,?,?)', (email, email.split('@')[0], int(time.time())))
         return db().execute('SELECT id FROM users WHERE email=?', (email,)).fetchone()['id']
 
-    def send_link(uid, subject, introduction, expiry=1800):
+    def mail_language(uid):
+        account = db().execute('SELECT language FROM users WHERE id=?', (uid,)).fetchone()
+        return account['language'] or getattr(g, 'language', 'de')
+
+    def send_link(uid, subject, introduction, expiry=1800, language=None):
         account = db().execute('SELECT email FROM users WHERE id=?', (uid,)).fetchone()
+        language = language or mail_language(uid)
         token = secrets.token_urlsafe(32)
         hashed = digest(token)
         db().execute('INSERT INTO tokens VALUES(?,?,?)', (hashed, uid, int(time.time()) + expiry))
-        body = introduction + '\n\nDein persönlicher, einmaliger Zugang:\n' + app.config['BASE_URL'].rstrip('/') + '/#token=' + token + '\n\nBitte nicht weitergeben. Wichtelwerk fragt nie nach deinem E-Mail-Passwort.\n'
+        subject = translate(subject, language)
+        body = translate(introduction, language) + '\n\n' + translate('Dein persönlicher, einmaliger Zugang:', language) + '\n' + app.config['BASE_URL'].rstrip('/') + '/#token=' + token + '\n\n' + translate('Bitte nicht weitergeben. Wichtelwerk fragt nie nach deinem E-Mail-Passwort.', language) + '\n'
         try:
             if app.config['MAIL_MODE'] == 'memory':
                 app.extensions['outbox'].append({'to': account['email'], 'subject': subject, 'body': body})
-            elif app.config['MAIL_MODE'] == 'sendmail':
+            elif app.config['MAIL_MODE'] in ('sendmail', 'smtp'):
                 message = EmailMessage()
                 message['From'] = app.config['MAIL_FROM']
                 message['To'] = account['email']
                 message['Subject'] = subject
                 message.set_content(body)
-                subprocess.run(['/usr/sbin/sendmail', '-i', '-t'], input=message.as_bytes(), check=True, timeout=20, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                if app.config['MAIL_MODE'] == 'sendmail':
+                    subprocess.run(['/usr/sbin/sendmail', '-i', '-t'], input=message.as_bytes(), check=True, timeout=20, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                else:
+                    security = app.config['SMTP_SECURITY']
+                    smtp = (smtplib.SMTP_SSL(app.config['SMTP_HOST'], app.config['SMTP_PORT'], timeout=20, context=ssl.create_default_context())
+                            if security == 'ssl' else smtplib.SMTP(app.config['SMTP_HOST'], app.config['SMTP_PORT'], timeout=20))
+                    with smtp:
+                        if security == 'starttls':
+                            smtp.starttls(context=ssl.create_default_context())
+                        if app.config['SMTP_USERNAME']:
+                            smtp.login(app.config['SMTP_USERNAME'], app.config['SMTP_PASSWORD'])
+                        smtp.send_message(message)
             else:
                 raise RuntimeError('Mail disabled')
         except (RuntimeError, OSError, subprocess.SubprocessError):
@@ -199,15 +242,24 @@ def create_app(config=None):
     def me():
         return jsonify(user=dict(g.user) if g.user else None, csrf=g.session['csrf'], can_create_events=can_create_events())
 
+    @app.post('/api/language')
+    def language():
+        uid = user()
+        choice = data().get('language')
+        if choice not in ('de', 'en'):
+            fail('Ungültige Sprache.')
+        db().execute('UPDATE users SET language=? WHERE id=?', (choice, uid))
+        return jsonify(ok=True, language=choice)
+
     @app.post('/api/login')
     def login():
         email = email_address(data().get('email'))
         rate('login-ip:' + (request.remote_addr or ''), 20)
         rate('login-email:' + digest(email), 3)
         uid = ensure_user(email)
-        if not send_link(uid, 'Dein Zugang zu Wichtelwerk', 'Willkommen zurück – oder schön, dass du dabei bist! Dieser Link gilt 30 Minuten.'):
+        if not send_link(uid, 'Dein Zugang zu Wichtelwerk', 'Willkommen zurück – oder schön, dass du dabei bist! Dieser Link gilt 30 Minuten.', language=g.language):
             fail('E-Mail konnte nicht übergeben werden. Bitte später erneut versuchen.', 503)
-        return jsonify(message='Der Anmeldelink wurde an den Mailserver übergeben. Bitte auch den Spamordner prüfen.')
+        return jsonify(message=translate('Der Anmeldelink wurde an den Mailserver übergeben. Bitte auch den Spamordner prüfen.', g.language))
 
     @app.post('/api/auth')
     def authenticate():
@@ -220,6 +272,7 @@ def create_app(config=None):
             c.rollback()
             fail('Dieser Link ist abgelaufen oder wurde bereits benutzt. Fordere einen neuen Anmeldelink an.')
         c.execute('DELETE FROM tokens WHERE digest=?', (digest(token),))
+        c.execute('UPDATE users SET language=? WHERE id=?', (g.language, row['user_id']))
         c.execute('DELETE FROM sessions WHERE digest=?', (g.session['digest'],))
         g.new_cookie = secrets.token_urlsafe(32)
         c.execute('INSERT INTO sessions VALUES(?,?,?,?)', (digest(g.new_cookie), row['user_id'], secrets.token_urlsafe(32), int(time.time()) + 30*86400))
@@ -313,7 +366,8 @@ def create_app(config=None):
         except sqlite3.IntegrityError:
             fail('Diese Person ist bereits eingeladen.', 409)
         db().commit()
-        sent = send_link(uid, 'Einladung: ' + row['title'], row['invitation'] + '\n\nDu bist zu „' + row['title'] + '“ eingeladen. Bitte im Konto zu- oder absagen. Zugang gilt 7 Tage.', 7*86400)
+        language = mail_language(uid)
+        sent = send_link(uid, translate('Einladung: ', language) + row['title'], row['invitation'] + '\n\n' + translate('Du bist zu „{title}“ eingeladen. Bitte im Konto zu- oder absagen. Zugang gilt 7 Tage.', language).format(title=row['title']), 7*86400, language=language)
         db().execute('UPDATE participants SET mail_status=?,mailed=? WHERE id=?', ('submitted' if sent else 'failed', int(time.time()), cursor.lastrowid))
         return jsonify(ok=True, mail_status='submitted' if sent else 'failed')
 
@@ -393,7 +447,7 @@ def create_app(config=None):
         except Exception:
             c.rollback()
             raise
-        return jsonify(ok=True, message='Ausgelost. Benachrichtigungen werden automatisch im Hintergrund versendet; die Zuordnungen stehen ausschließlich im persönlichen Konto.')
+        return jsonify(ok=True, message=translate('Ausgelost. Benachrichtigungen werden automatisch im Hintergrund versendet; die Zuordnungen stehen ausschließlich im persönlichen Konto.', g.language))
 
     def join_event(row, name):
         mutable(row)
@@ -454,7 +508,8 @@ def create_app(config=None):
         rate('remind-owner:' + str(user()), 100)
         rate('remind-member:' + str(pid), 3, 86400)
         intro = 'Die Auslosung ist fertig. Dein Wichtelkind findest du ausschließlich in deinem Konto.' if row['drawn'] else 'Bitte antworte auf die Einladung und ergänze deine Wünsche.'
-        sent = send_link(member['user_id'], 'Erinnerung: ' + row['title'], row['invitation'] + '\n\n' + intro + '\nZugang gilt 7 Tage.', 7*86400)
+        language = mail_language(member['user_id'])
+        sent = send_link(member['user_id'], translate('Erinnerung: ', language) + row['title'], row['invitation'] + '\n\n' + translate(intro, language) + '\n' + translate('Zugang gilt 7 Tage.', language), 7*86400, language=language)
         db().execute('UPDATE participants SET mail_status=?,mailed=? WHERE id=?', ('submitted' if sent else 'failed', int(time.time()),pid))
         return jsonify(submitted=int(sent), failed=int(not sent))
 
@@ -485,7 +540,7 @@ def create_app(config=None):
                 if a in mapping and b in mapping:
                     db().execute('INSERT INTO exclusions VALUES(?,?,?)',(new_id,mapping[a],mapping[b]))
         db().commit()
-        return jsonify(id=new_id, message='Kopie erstellt. Keine Wünsche, Adressen oder Zusagen übernommen. Einladungen über „Erinnerung senden“ verschicken.')
+        return jsonify(id=new_id, message=translate('Kopie erstellt. Keine Wünsche, Adressen oder Zusagen übernommen. Einladungen über „Erinnerung senden“ verschicken.', g.language))
 
     @app.post('/api/events/<eid>/retention')
     def retention(eid):
@@ -502,7 +557,7 @@ def create_app(config=None):
     @app.post('/api/events/<eid>/delete')
     def delete_event(eid):
         event(eid, True)
-        if data().get('confirm') != 'LÖSCHEN':
+        if data().get('confirm') not in ('LÖSCHEN', 'DELETE'):
             fail('Bitte LÖSCHEN bestätigen.')
         db().execute('DELETE FROM events WHERE id=?',(eid,))
         return jsonify(ok=True)
@@ -510,7 +565,7 @@ def create_app(config=None):
     @app.post('/api/account/delete')
     def delete_account():
         uid = user()
-        if data().get('confirm') != 'LÖSCHEN':
+        if data().get('confirm') not in ('LÖSCHEN', 'DELETE'):
             fail('Bitte LÖSCHEN bestätigen.')
         db().execute('DELETE FROM users WHERE id=?',(uid,))
         return jsonify(ok=True)
@@ -529,7 +584,8 @@ def create_app(config=None):
                 if not job:
                     c.rollback()
                     break
-                sent = send_link(job['user_id'], 'Ausgelost: ' + job['title'], 'Die Auslosung ist fertig. Dein Wichtelkind findest du ausschließlich in deinem Konto. Zugang gilt 7 Tage.', 7*86400)
+                language = mail_language(job['user_id'])
+                sent = send_link(job['user_id'], translate('Ausgelost: ', language) + job['title'], 'Die Auslosung ist fertig. Dein Wichtelkind findest du ausschließlich in deinem Konto. Zugang gilt 7 Tage.', 7*86400, language=language)
                 attempts = job['attempts'] + 1
                 status = 'submitted' if sent else ('failed' if attempts >= 8 else 'queued')
                 delay = min(86400, 60 * 2 ** min(attempts, 10))

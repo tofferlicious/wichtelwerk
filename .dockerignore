@@ -1,0 +1,11 @@
+# Build-context allowlist: never send .env, databases, tests or Git history.
+*
+!Dockerfile
+!requirements.txt
+!wichtelwerk.py
+!translations.py
+!schema.sql
+!static/
+!static/**
+!scripts/
+!scripts/maintenance.py

@@ -75,9 +75,9 @@ def main():
             with sync_playwright() as p:
                 browser = p.chromium.launch(executable_path=os.environ.get('CHROME_PATH', p.chromium.executable_path))
                 try:
-                    def page_for(client=None):
+                    def page_for(client=None, locale='de-DE'):
                         context = browser.new_context(viewport={'width':1360,'height':900},
-                                  locale='de-DE', timezone_id='Europe/Berlin', reduced_motion='reduce',
+                                  locale=locale, timezone_id='Europe/Berlin', reduced_motion='reduce',
                                   device_scale_factor=1, color_scheme='light')
                         if client:
                             context.add_cookies([{'name':'ww_session','value':client.get_cookie('ww_session').value,'url':url}])
@@ -98,6 +98,11 @@ def main():
                     expect(home.get_by_role('heading', name='Kleine Geste. Große Freude.')).to_be_visible()
                     home.wait_for_function('document.querySelector(".hero-photo img")?.naturalWidth > 0')
                     capture(home, 'home-desktop.png')
+                    english = page_for(locale='en-US')
+                    english.goto(url)
+                    expect(english.get_by_role('heading', name='Small gesture. Great joy.')).to_be_visible()
+                    english.wait_for_function('document.querySelector(".hero-photo img")?.naturalWidth > 0')
+                    capture(english, 'home-english.png')
                     dashboard = page_for(owner)
                     dashboard.goto(url+'/#dashboard')
                     expect(dashboard.locator('.event-card')).to_have_count(2)
@@ -116,7 +121,7 @@ def main():
         finally:
             server.shutdown()
             thread.join(timeout=5)
-        expected = {'home-desktop.png','dashboard.png','recipient.png','mobile.png'}
+        expected = {'home-desktop.png','home-english.png','dashboard.png','recipient.png','mobile.png'}
         assert {p.name for p in output.glob('*.png')} == expected
         for name in sorted(expected):
             target = output/name

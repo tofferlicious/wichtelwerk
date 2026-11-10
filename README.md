@@ -4,7 +4,7 @@
   <img src="static/images/gift-still-life.svg" width="240" alt="Wichtelwerk gift illustration in evergreen, cream and terracotta">
 </p>
 
-A small, self-hosted Secret Santa application with a German-language interface. Organize private gift exchanges, collect wishlists and reveal each person's recipient only in their own account. Built with Flask, SQLite and plain JavaScript; no frontend build step, analytics, external fonts or image services.
+A small, self-hosted Secret Santa application with **German and English interfaces**, automatic browser-language detection and a manual language switch. Organize private gift exchanges, collect wishlists and reveal each person's recipient only in their own account. Built with Flask, SQLite and plain JavaScript; no frontend build step, analytics, external fonts or image services.
 
 ## Screenshots
 
@@ -13,6 +13,13 @@ Real application screens, captured locally with **synthetic demo data**. No prod
 ### Welcome
 
 ![Wichtelwerk desktop welcome page with the gift illustration](docs/screenshots/home-desktop.png)
+
+<details>
+<summary>English interface (automatically detected from the browser)</summary>
+
+![Wichtelwerk English welcome page and language selector](docs/screenshots/home-english.png)
+
+</details>
 
 ### Your rounds
 
@@ -50,9 +57,68 @@ The script starts a disposable local instance, exercises the actual invitation a
 - Creator allowlist by default; optional public creation for authenticated users.
 - Responsive interface with locally served SVG artwork.
 
-## Install
+## Languages
 
-Requires Python 3.11+ and a Unix-like server. Real sign-in/invitation email currently requires a working `/usr/sbin/sendmail` interface; direct SMTP configuration is not implemented.
+The complete interface, dialogs, accessibility labels, date formatting, API messages and application-owned email text are available in **German and English**.
+
+1. A saved manual choice (`ww_language` in local browser storage) takes precedence.
+2. Otherwise, the app uses the first supported language in the browser's preference list, including regional variants such as `en-US`, `en-GB`, `de-DE` and `de-AT`.
+3. If none is supported, it falls back to German. Blocked browser storage does not prevent using the app or switching language for the current page.
+
+Use the language selector in the header before or after sign-in. The selected language is sent with API requests and saved for authenticated accounts so later emails can use the recipient's preference. Sign-in emails use the requesting browser's language. Invitations and reminders use the recipient's known preference, or the sender's language if unknown; background draw notifications default to German until the recipient has a preference.
+
+Round titles, invitation messages, names, wishes and addresses are **never automatically translated**. Existing databases receive an additive language column on startup; existing accounts and rounds are retained. Back up your database before any upgrade.
+
+## Docker Compose quick start
+
+Requires Docker Engine and Docker Compose v2. The image is built locally from this repository; no registry login is required.
+
+```sh
+git clone https://github.com/tofferlicious/wichtelwerk.git
+cd wichtelwerk
+cp .env.example .env
+# Edit .env: public BASE_URL, MAIL_FROM, SMTP settings and EVENT_CREATOR_EMAILS.
+docker compose up -d --build
+docker compose ps
+```
+
+The web service listens on **127.0.0.1:8765** on the Docker host. Put your HTTPS reverse proxy in front of it, set `BASE_URL` to that exact public origin, and keep `COOKIE_SECURE=true`. A proxy running in another container needs a shared Docker network or an explicitly configured host binding; `localhost` inside that proxy is not the Docker host.
+
+For **local HTTP testing only**, set `BASE_URL=http://localhost:8765` and `COOKIE_SECURE=false`, recreate with `docker compose up -d`, then open that exact address. Restore secure cookies before public deployment. A fresh instance still requires your own SMTP service to send real login links; no mail server is bundled.
+
+Both services run as a non-root user with a read-only root filesystem. The named `wichtelwerk-data` volume stores SQLite under `/data` and survives container recreation. The worker automatically runs `send-draw-mail` approximately once per minute and `cleanup` once per day (also at worker startup); **do not add duplicate host cron jobs** for this Compose deployment.
+
+```sh
+# Inspect both services, including queue submission and cleanup results.
+docker compose logs --tail=100 web worker
+
+# Upgrade source and rebuild without deleting the database volume.
+git pull --ff-only
+docker compose up -d --build
+
+# Stop the stack while preserving data.
+docker compose down
+```
+
+**Never use `docker compose down -v` unless you intend to delete all application data.** Keep consistent SQLite backups outside the volume and test restoration. Do not copy a live `.db` file alone while its WAL is active. For a bind mount instead of the provided named volume, its directory must be writable by UID/GID `10001:10001`; the non-root image does not change host ownership automatically.
+
+### SMTP configuration
+
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `MAIL_MODE` | `disabled` in the app; `smtp` in the example | `smtp`, existing `sendmail`, or `disabled`. Memory mail is test-only. |
+| `MAIL_FROM` | `wichtelwerk@example.invalid` | Sender address accepted by your SMTP provider. |
+| `SMTP_HOST` | empty | SMTP hostname; required for SMTP mode. `localhost` means the container itself. |
+| `SMTP_PORT` | `587` | SMTP server port. Set `465` for typical implicit TLS configurations. |
+| `SMTP_SECURITY` | `starttls` | `starttls`, `ssl` (implicit TLS), or `none` (trusted local test transport only). TLS verifies certificates and never silently downgrades. |
+| `SMTP_USERNAME` / `SMTP_PASSWORD` | empty | Set both for authenticated SMTP, or leave both empty for a trusted relay. |
+| `COOKIE_SECURE` | `true` | Set `false` only for deliberate local HTTP testing. |
+
+Put credentials only in your private `.env` or process environment. Compose loads `.env`; the Python application itself does not. Neither credentials nor production data belong in the image or repository. The container distribution uses SMTP; the existing `sendmail` path remains available for manual host installations, not in the standard image.
+
+## Manual Python installation
+
+Requires Python 3.11+ and a Unix-like server. Use either a reachable SMTP server (`MAIL_MODE=smtp`, settings above) or an existing `/usr/sbin/sendmail` interface (`MAIL_MODE=sendmail`).
 
 ```sh
 git clone https://github.com/tofferlicious/wichtelwerk.git
@@ -91,7 +157,7 @@ The backend enforces this policy for both creation and copying; hiding controls 
 
 ## Maintenance
 
-Schedule these commands with your process manager or cron, using the same exported environment as the web application:
+For manual Python installations, schedule these commands with your process manager or cron, using the same exported environment as the web application. Docker Compose already runs them in its worker:
 
 ```sh
 # Run approximately once per minute to submit queued draw notifications.

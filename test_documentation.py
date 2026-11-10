@@ -24,6 +24,15 @@ def test_readme_links_local_hero_and_screenshot_files():
     assert 'synthetic' in readme.lower()
 
 
+def test_privacy_text_matches_portable_docker_distribution():
+    catalog = (ROOT/'static/i18n.js').read_text()
+    texts = re.findall(r"'privacy.email.text': '([^']+)'", catalog)
+    assert len(texts) == 2
+    for text in texts:
+        assert 'Uberspace' not in text
+        assert all(term in text for term in ('SMTP', 'Docker', 'HTTP'))
+
+
 def test_hero_svg_is_self_contained_and_accessible():
     svg = ET.parse(ROOT/'static/images/gift-still-life.svg').getroot()
     ns = {'svg':'http://www.w3.org/2000/svg'}
