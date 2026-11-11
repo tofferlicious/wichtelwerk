@@ -45,15 +45,15 @@ def main():
 
         owner = sign_in('alex@example.invalid')
         day = (date.today()+timedelta(days=40)).isoformat()
-        event = post(owner, '/events', {'title':'Wichteln im Freundeskreis', 'date':day,
-                     'budget':'25 €', 'invitation':'Ein schöner Abend, ein kleines Geschenk und Zeit füreinander.'})['id']
+        event = post(owner, '/events', {'title':'Secret Santa with friends', 'date':day,
+                     'budget':'€25', 'invitation':'A cozy evening, a little gift, and time together.'})['id']
         base = '/events/'+event
         post(owner, base+'/join', {'name':'Alex'})
-        post(owner, base+'/wishes', {'wishes':'Ein gutes Buch oder etwas für den Garten. Ich mag natürliche Materialien.'})
+        post(owner, base+'/wishes', {'wishes':'A good book or something for the garden. I love natural materials.'})
         people = [
-            ('Lina', 'lina@example.invalid', 'Ein Notizbuch, Kräutertee oder ein kleines Puzzle. Meine Lieblingsfarbe ist Grün.'),
-            ('Jonas', 'jonas@example.invalid', 'Kaffee, ein spannender Krimi oder eine Kleinigkeit für meine Küche.'),
-            ('Mara', 'mara@example.invalid', 'Etwas zum Zeichnen, ein schönes Lesezeichen oder eine kleine Pflanze.'),
+            ('Lina', 'lina@example.invalid', 'A notebook, herbal tea, or a little puzzle. My favorite color is green.'),
+            ('Jonas', 'jonas@example.invalid', 'Coffee, a gripping mystery novel, or something for my kitchen.'),
+            ('Mara', 'mara@example.invalid', 'Drawing supplies, a lovely bookmark, or a small plant.'),
         ]
         guests = []
         for name, email, wishes in people:
@@ -62,7 +62,7 @@ def main():
             post(client, base+'/respond', {'status':'accepted'})
             post(client, base+'/wishes', {'wishes':wishes})
             guests.append(client)
-        post(owner, '/events', {'title':'Wichteln im Team', 'date':day, 'budget':'15 €'})
+        post(owner, '/events', {'title':'Team Secret Santa', 'date':day, 'budget':'€15'})
         post(owner, base+'/draw', {'confirmed':True})
 
         server = make_server('127.0.0.1', 0, app, threaded=True)
@@ -75,9 +75,9 @@ def main():
             with sync_playwright() as p:
                 browser = p.chromium.launch(executable_path=os.environ.get('CHROME_PATH', p.chromium.executable_path))
                 try:
-                    def page_for(client=None):
+                    def page_for(client=None, locale='en-US'):
                         context = browser.new_context(viewport={'width':1360,'height':900},
-                                  locale='de-DE', timezone_id='Europe/Berlin', reduced_motion='reduce',
+                                  locale=locale, timezone_id='Europe/Berlin', reduced_motion='reduce',
                                   device_scale_factor=1, color_scheme='light')
                         if client:
                             context.add_cookies([{'name':'ww_session','value':client.get_cookie('ww_session').value,'url':url}])
@@ -89,21 +89,24 @@ def main():
 
                     def capture(page, name, full_page=False):
                         page.evaluate('document.fonts.ready')
+                        assert page.locator('html').get_attribute('lang') == 'en', name
                         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth'), name
                         assert page.evaluate('document.body.scrollWidth <= innerWidth'), name
                         page.screenshot(path=str(output/name), full_page=full_page)
 
                     home = page_for()
                     home.goto(url)
-                    expect(home.get_by_role('heading', name='Kleine Geste. Große Freude.')).to_be_visible()
+                    expect(home.get_by_role('heading', name='Small gesture. Great joy.')).to_be_visible()
                     home.wait_for_function('document.querySelector(".hero-photo img")?.naturalWidth > 0')
                     capture(home, 'home-desktop.png')
                     dashboard = page_for(owner)
                     dashboard.goto(url+'/#dashboard')
+                    expect(dashboard.get_by_role('heading', name='My Secret Santa rounds')).to_be_visible()
                     expect(dashboard.locator('.event-card')).to_have_count(2)
                     capture(dashboard, 'dashboard.png')
                     recipient = page_for(guests[0])
                     recipient.goto(url+'/#event='+event)
+                    expect(recipient.get_by_role('heading', name='You are giving to …')).to_be_visible()
                     expect(recipient.locator('.recipient-name')).to_be_visible()
                     expect(recipient.locator('.recipient-wishes')).to_be_visible()
                     capture(recipient, 'recipient.png', full_page=True)

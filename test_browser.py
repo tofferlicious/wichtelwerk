@@ -18,7 +18,7 @@ def test_browser_round_lifecycle(tmp_path):
         browser=p.chromium.launch(executable_path=os.environ.get('CHROME_PATH', p.chromium.executable_path))
         contexts=[]
         def login(email):
-            ctx=browser.new_context(); contexts.append(ctx); page=ctx.new_page()
+            ctx=browser.new_context(locale='de-DE'); contexts.append(ctx); page=ctx.new_page()
             page.on('pageerror', lambda e: errors.append(str(e)))
             page.goto(url+'/#login')
             page.locator('[name=email]').fill(email)

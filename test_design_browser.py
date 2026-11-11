@@ -28,7 +28,7 @@ def test_creator_controls_and_stylized_art(tmp_path):
             browser = p.chromium.launch(executable_path=executable, args=['--no-sandbox'])
             try:
                 errors = []
-                anonymous = browser.new_page()
+                anonymous = browser.new_page(locale='de-DE')
                 anonymous.on('pageerror', lambda error: errors.append(str(error)))
                 external = []
                 anonymous.on('request', lambda request: external.append(request.url)
@@ -47,7 +47,7 @@ def test_creator_controls_and_stylized_art(tmp_path):
                     anonymous.screenshot(path=str(artifacts/f'homepage-{width}.png'),full_page=True)
                 assert not external, external
                 for client, creator, event_id in [(guest,False,legacy),(admin,True,own)]:
-                    context = browser.new_context()
+                    context = browser.new_context(locale='de-DE')
                     context.add_cookies([{'name':'ww_session','value':client.get_cookie('ww_session').value,'url':url}])
                     page = context.new_page()
                     page.on('pageerror', lambda error: errors.append(str(error)))

@@ -17,4 +17,5 @@ instance/
 artifacts/
 production-*.png
 .hallmark/
+_site/
 .DS_Store

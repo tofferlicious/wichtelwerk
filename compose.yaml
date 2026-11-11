@@ -1,0 +1,34 @@
+x-app: &app
+  build: .
+  image: ghcr.io/tofferlicious/wichtelwerk:edge
+  env_file: .env
+  environment:
+    DATABASE: /data/wichtelwerk.db
+  volumes:
+    - wichtelwerk-data:/data
+  restart: unless-stopped
+  init: true
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  read_only: true
+  tmpfs:
+    - /tmp:size=32m,mode=1777
+  mem_limit: 256m
+  stop_grace_period: 30s
+
+services:
+  web:
+    <<: *app
+    ports:
+      - "127.0.0.1:8765:8765"
+  worker:
+    <<: *app
+    command: [python, scripts/maintenance.py]
+    depends_on:
+      web:
+        condition: service_healthy
+    healthcheck:
+      disable: true
+
+volumes:
+  wichtelwerk-data:
