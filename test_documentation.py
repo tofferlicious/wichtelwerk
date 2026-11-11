@@ -23,6 +23,14 @@ def test_readme_links_local_hero_and_screenshot_files():
     assert 'synthetic' in readme.lower()
 
 
+def test_readme_installation_tracks_main_and_links_releases():
+    readme = (ROOT/'README.md').read_text()
+    assert 'feat/english-docker' not in readme
+    assert 'main` has not been updated yet' not in readme
+    assert 'git clone --branch main https://github.com/tofferlicious/wichtelwerk.git' in readme
+    assert 'https://github.com/tofferlicious/wichtelwerk/releases/latest' in readme
+
+
 def test_published_image_is_documented_and_repository_linked():
     readme = (ROOT/'README.md').read_text()
     compose = (ROOT/'compose.yaml').read_text()

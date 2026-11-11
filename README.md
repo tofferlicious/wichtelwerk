@@ -15,7 +15,7 @@ python3 -m http.server 8000 --directory _site
 
 ## Automated checks
 
-GitHub Actions runs the Python and Chromium browser tests, lifecycle checks, JavaScript syntax checks, and a Docker build with an isolated container healthcheck on pushes and pull requests. The optional production/live test is intentionally excluded. After successful trusted pushes, it publishes the static demo to GitHub Pages. While this work is on the feature branch, both `feat/english-docker` and `main` are authorized demo sources; pull requests never deploy.
+GitHub Actions runs the Python and Chromium browser tests, lifecycle checks, JavaScript syntax checks, and a Docker build with an isolated container healthcheck on pushes and pull requests. The optional production/live test is intentionally excluded. Successful pushes to `main` publish the static demo to GitHub Pages and the rolling `edge` container image to GHCR. Pull requests run checks without publishing images or deploying the demo.
 
 ## Screenshots
 
@@ -74,14 +74,18 @@ Use the language selector in the header before or after sign-in. The selected la
 
 Round titles, invitation messages, names, wishes and addresses are **never automatically translated**. Existing databases receive an additive language column on startup; existing accounts and rounds are retained. Back up your database before any upgrade.
 
+## Releases
+
+For a versioned installation, use the [latest GitHub release](https://github.com/tofferlicious/wichtelwerk/releases/latest). Download its `compose.yaml` and `env.example`, copy `env.example` to `.env`, and configure your public URL, SMTP settings and creator allowlist. Then start with `docker compose up -d --no-build --pull always`. The release's Compose file pins the exact container image by digest; see its release notes for details and platform support.
+
+The source-based instructions below use `main`, the current development branch. Its Compose file uses the rolling `edge` image, not a versioned release.
+
 ## Docker Compose quick start
 
 Requires Docker Engine and Docker Compose v2. Wichtelwerk is self-hosted software, not a shared hosted service. The GitHub Pages site is a read-only visual demo.
 
-The current preview lives on `feat/english-docker`; the commands below check out that branch. `main` has not been updated yet.
-
 ```sh
-git clone --branch feat/english-docker https://github.com/tofferlicious/wichtelwerk.git
+git clone --branch main https://github.com/tofferlicious/wichtelwerk.git
 cd wichtelwerk
 cp .env.example .env
 # Edit .env: public BASE_URL, MAIL_FROM, SMTP settings and EVENT_CREATOR_EMAILS.
@@ -102,7 +106,7 @@ docker compose up -d --no-build
 
 For subsequent image updates, repeat those two commands; they preserve the named database volume. Alternatively, `docker compose up -d --build` still builds your checked-out source locally. For a reproducible image, replace the Compose `image:` value with `ghcr.io/tofferlicious/wichtelwerk@sha256:<digest>` before starting with `--no-build`.
 
-Maintainer note: GitHub initially creates new container packages as private. Set the package visibility to **Public** once before recommending anonymous pulls. Publishing uses the repository's short-lived Actions token; no personal registry token or `.env` is included in the build.
+The container image is public and can be pulled without a registry login. Publishing uses the repository's short-lived Actions token; no personal registry token or `.env` is included in the build.
 
 The web service listens on **127.0.0.1:8765** on the Docker host. Put your HTTPS reverse proxy in front of it, set `BASE_URL` to that exact public origin, and keep `COOKIE_SECURE=true`. A proxy running in another container needs a shared Docker network or an explicitly configured host binding; `localhost` inside that proxy is not the Docker host.
 
@@ -143,7 +147,7 @@ Put credentials only in your private `.env` or process environment. Compose load
 Requires Python 3.11+ and a Unix-like server. Use either a reachable SMTP server (`MAIL_MODE=smtp`, settings above) or an existing `/usr/sbin/sendmail` interface (`MAIL_MODE=sendmail`).
 
 ```sh
-git clone --branch feat/english-docker https://github.com/tofferlicious/wichtelwerk.git
+git clone --branch main https://github.com/tofferlicious/wichtelwerk.git
 cd wichtelwerk
 python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements.txt
@@ -162,7 +166,7 @@ export EVENT_CREATOR_EMAILS="admin@example.com"
 .venv/bin/gunicorn --bind 127.0.0.1:8765 --workers 2 'wichtelwerk:create_app()'
 ```
 
-Place an HTTPS reverse proxy in front of Gunicorn. Cookies are secure by default; use HTTPS for real sign-in. Set `BASE_URL` to the exact public origin without a path. Uberspace requires binding to `0.0.0.0:8765` rather than loopback and registering the dedicated domain backend.
+Place an HTTPS reverse proxy in front of Gunicorn. Cookies are secure by default; use HTTPS for real sign-in. Set `BASE_URL` to the exact public origin without a path. Adapt the binding and proxy configuration to your hosting environment; do not expose Gunicorn directly to the public internet.
 
 The database schema initializes automatically. Keep the database and backups outside publicly served paths. `.env.example` documents the variables but **is not automatically loaded**; export them or set them in your process manager. Keep the same database, URL and mail settings for maintenance workers. Restart the web application after configuration changes.
 
