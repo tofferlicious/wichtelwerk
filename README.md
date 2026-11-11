@@ -1,9 +1,5 @@
 # Wichtelwerk
 
-<p align="center">
-  <img src="static/images/gift-still-life.svg" width="240" alt="Wichtelwerk gift illustration in evergreen, cream and terracotta">
-</p>
-
 A small, self-hosted Secret Santa application with **German and English interfaces**, automatic browser-language detection and a manual language switch. Organize private gift exchanges, collect wishlists and reveal each person's recipient only in their own account. Built with Flask, SQLite and plain JavaScript; no frontend build step, analytics, external fonts or image services.
 
 ## Try the demo
