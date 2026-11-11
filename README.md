@@ -23,18 +23,12 @@ GitHub Actions runs the Python and Chromium browser tests, lifecycle checks, Jav
 
 ## Screenshots
 
-Real application screens, captured locally with **synthetic demo data**. No production accounts, wishlists or assignments are shown.
+Real application screens in **English**, captured locally with **synthetic demo data**. No production accounts, wishlists or assignments are shown. The application also supports German.
 
 ### Welcome
 
 ![Wichtelwerk desktop welcome page with the gift illustration](docs/screenshots/home-desktop.png)
 
-<details>
-<summary>English interface (automatically detected from the browser)</summary>
-
-![Wichtelwerk English welcome page and language selector](docs/screenshots/home-english.png)
-
-</details>
 
 ### Your rounds
 
@@ -86,16 +80,33 @@ Round titles, invitation messages, names, wishes and addresses are **never autom
 
 ## Docker Compose quick start
 
-Requires Docker Engine and Docker Compose v2. The image is built locally from this repository; no registry login is required.
+Requires Docker Engine and Docker Compose v2. Wichtelwerk is self-hosted software, not a shared hosted service. The GitHub Pages site is a read-only visual demo.
+
+The current preview lives on `feat/english-docker`; the commands below check out that branch. `main` has not been updated yet.
 
 ```sh
-git clone https://github.com/tofferlicious/wichtelwerk.git
+git clone --branch feat/english-docker https://github.com/tofferlicious/wichtelwerk.git
 cd wichtelwerk
 cp .env.example .env
 # Edit .env: public BASE_URL, MAIL_FROM, SMTP settings and EVENT_CREATOR_EMAILS.
 docker compose up -d --build
 docker compose ps
 ```
+
+### Prebuilt container image
+
+CI publishes **`ghcr.io/tofferlicious/wichtelwerk:edge`** after successful tests. `edge` is a rolling development preview, not a versioned stable release. Images currently target **Linux/amd64 (x86-64)**. Each build also receives a `sha-<full-commit-SHA>` tag; pin a digest for a reproducible installation.
+
+To use the prebuilt image with the same Compose file instead of building locally:
+
+```sh
+docker compose pull
+docker compose up -d --no-build
+```
+
+For subsequent image updates, repeat those two commands; they preserve the named database volume. Alternatively, `docker compose up -d --build` still builds your checked-out source locally. For a reproducible image, replace the Compose `image:` value with `ghcr.io/tofferlicious/wichtelwerk@sha256:<digest>` before starting with `--no-build`.
+
+Maintainer note: GitHub initially creates new container packages as private. Set the package visibility to **Public** once before recommending anonymous pulls. Publishing uses the repository's short-lived Actions token; no personal registry token or `.env` is included in the build.
 
 The web service listens on **127.0.0.1:8765** on the Docker host. Put your HTTPS reverse proxy in front of it, set `BASE_URL` to that exact public origin, and keep `COOKIE_SECURE=true`. A proxy running in another container needs a shared Docker network or an explicitly configured host binding; `localhost` inside that proxy is not the Docker host.
 
@@ -136,7 +147,7 @@ Put credentials only in your private `.env` or process environment. Compose load
 Requires Python 3.11+ and a Unix-like server. Use either a reachable SMTP server (`MAIL_MODE=smtp`, settings above) or an existing `/usr/sbin/sendmail` interface (`MAIL_MODE=sendmail`).
 
 ```sh
-git clone https://github.com/tofferlicious/wichtelwerk.git
+git clone --branch feat/english-docker https://github.com/tofferlicious/wichtelwerk.git
 cd wichtelwerk
 python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements.txt

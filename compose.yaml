@@ -1,6 +1,6 @@
 x-app: &app
   build: .
-  image: wichtelwerk:local
+  image: ghcr.io/tofferlicious/wichtelwerk:edge
   env_file: .env
   environment:
     DATABASE: /data/wichtelwerk.db

@@ -24,6 +24,17 @@ def test_readme_links_local_hero_and_screenshot_files():
     assert 'synthetic' in readme.lower()
 
 
+def test_published_image_is_documented_and_repository_linked():
+    readme = (ROOT/'README.md').read_text()
+    compose = (ROOT/'compose.yaml').read_text()
+    workflow = (ROOT/'.github/workflows/ci.yml').read_text()
+    assert 'ghcr.io/tofferlicious/wichtelwerk:edge' in readme
+    assert 'ghcr.io/tofferlicious/wichtelwerk:edge' in compose
+    assert 'packages: write' in workflow
+    assert 'org.opencontainers.image.source' in workflow
+    assert 'sha-${GITHUB_SHA}' in workflow
+
+
 def test_privacy_text_matches_portable_docker_distribution():
     catalog = (ROOT/'static/i18n.js').read_text()
     texts = re.findall(r"'privacy.email.text': '([^']+)'", catalog)
