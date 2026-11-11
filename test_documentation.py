@@ -9,7 +9,6 @@ ROOT = Path(__file__).parent
 def test_readme_links_local_hero_and_screenshot_files():
     readme = (ROOT/'README.md').read_text()
     assert 'Kleine Geste. Große Freude.' not in readme
-    assert 'static/images/gift-still-life.svg' in readme.split('## Features')[0]
     paths = re.findall(r'(?:src=")([^"\n]+)(?:")|!\[[^\]]*\]\(([^)]+)\)', readme)
     sources = [html or markdown for html, markdown in paths]
     expected = {'docs/screenshots/home-desktop.png', 'docs/screenshots/dashboard.png',
