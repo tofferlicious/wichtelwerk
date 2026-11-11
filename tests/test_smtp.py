@@ -8,8 +8,8 @@ import ssl
 import subprocess
 import threading
 import pytest
-from test_creation_permissions import app_for
-from test_localization import localized_post
+from .test_creation_permissions import app_for
+from .test_localization import localized_post
 
 
 class SMTPHandler(socketserver.StreamRequestHandler):

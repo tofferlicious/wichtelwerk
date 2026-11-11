@@ -7,7 +7,7 @@ from copy import deepcopy
 from playwright.sync_api import expect, sync_playwright
 from werkzeug.serving import make_server
 
-from test_creation_permissions import app_for
+from .test_creation_permissions import app_for
 
 
 CHROME = os.environ.get('CHROME_PATH')

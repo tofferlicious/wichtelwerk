@@ -4,7 +4,7 @@ import sqlite3
 from concurrent.futures import ThreadPoolExecutor
 import pytest
 from wichtelwerk import create_app
-from test_creation_permissions import app_for, login, post, payload, ADMIN
+from .test_creation_permissions import app_for, login, post, payload, ADMIN
 
 
 def localized_post(client, path, data, language='en'):

@@ -9,7 +9,7 @@ import threading
 
 from playwright.sync_api import expect, sync_playwright
 
-ROOT = Path(__file__).parent
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_static_demo_navigation_language_and_no_data_submission(tmp_path):

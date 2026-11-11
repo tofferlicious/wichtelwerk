@@ -1,7 +1,11 @@
 """Isolated lifecycle regression check; never sends external mail."""
 import tempfile
 import sqlite3
+import sys
 from datetime import date, timedelta
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from wichtelwerk import create_app
 
 with tempfile.TemporaryDirectory() as tmp:

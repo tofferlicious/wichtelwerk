@@ -5,7 +5,7 @@ import threading
 from urllib.parse import urlparse
 from playwright.sync_api import sync_playwright, expect
 from werkzeug.serving import make_server
-from test_creation_permissions import app_for, login, post, payload, ADMIN, OTHER
+from .test_creation_permissions import app_for, login, post, payload, ADMIN, OTHER
 
 
 def test_creator_controls_and_stylized_art(tmp_path):
@@ -20,7 +20,7 @@ def test_creator_controls_and_stylized_art(tmp_path):
     app.config['BASE_URL'] = url
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
-    artifacts = Path(__file__).parent/'artifacts'
+    artifacts = Path(__file__).resolve().parents[1]/'artifacts'
     artifacts.mkdir(exist_ok=True)
     try:
         with sync_playwright() as p:
