@@ -195,13 +195,23 @@ For manual Python installations, schedule these commands with your process manag
 
 Run `/healthz` for a basic application/database health check. Back up SQLite consistently, including its WAL state; copying only a live `.db` file is not a backup strategy. Preserve production data on upgrades and never replace it with a development database.
 
+## Repository layout
+
+- `wichtelwerk.py`, `translations.py`, `schema.sql`: application, email/API translations and database schema.
+- `static/`: browser interface, interface translations and local illustrations.
+- `tests/`: backend, browser, mail, maintenance and documentation regression tests.
+- `scripts/`: maintenance worker, lifecycle check, demo builder and screenshot capture.
+- `demo/`: read-only API adapter for the static demo.
+- `docs/screenshots/`: synthetic screenshots used in this README.
+- `.github/workflows/`: automated checks, container publication and demo deployment.
+
 ## Tests
 
 ```sh
 .venv/bin/python -m pip install -r requirements-dev.txt
 .venv/bin/python -m playwright install chromium
-.venv/bin/python -m pytest -q
-.venv/bin/python verify_lifecycle.py
+.venv/bin/python -m pytest -q tests
+.venv/bin/python scripts/verify_lifecycle.py
 ```
 
 If Chromium is already installed, set `CHROME_PATH=/path/to/chrome` instead of downloading another copy. Tests use temporary SQLite databases and memory-only mail, exercising creator permissions, anonymous denial, invitations, wishlists, draw privacy, notification queues and desktop/mobile controls.
