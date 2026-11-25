@@ -46,14 +46,14 @@ def main():
         owner = sign_in('alex@example.invalid')
         day = (date.today()+timedelta(days=40)).isoformat()
         event = post(owner, '/events', {'title':'Secret Santa with friends', 'date':day,
-                     'budget':'€25', 'invitation':'A cozy evening, a little gift, and time together.'})['id']
+                     'budget':'€25', 'invitation':'Gift exchange at 6 pm. Please add your wishes before the draw.'})['id']
         base = '/events/'+event
         post(owner, base+'/join', {'name':'Alex'})
         post(owner, base+'/wishes', {'wishes':'A good book or something for the garden. I love natural materials.'})
         people = [
             ('Lina', 'lina@example.invalid', 'A notebook, herbal tea, or a little puzzle. My favorite color is green.'),
             ('Jonas', 'jonas@example.invalid', 'Coffee, a gripping mystery novel, or something for my kitchen.'),
-            ('Mara', 'mara@example.invalid', 'Drawing supplies, a lovely bookmark, or a small plant.'),
+            ('Mara', 'mara@example.invalid', 'Drawing supplies, a bookmark, or a small plant.'),
         ]
         guests = []
         for name, email, wishes in people:
@@ -96,7 +96,7 @@ def main():
 
                     home = page_for()
                     home.goto(url)
-                    expect(home.get_by_role('heading', name='Small gesture. Great joy.')).to_be_visible()
+                    expect(home.get_by_role('heading', name='Organize Secret Santa')).to_be_visible()
                     home.wait_for_function('document.querySelector(".hero-photo img")?.naturalWidth > 0')
                     capture(home, 'home-desktop.png')
                     dashboard = page_for(owner)

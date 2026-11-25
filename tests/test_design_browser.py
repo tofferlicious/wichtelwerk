@@ -36,7 +36,7 @@ def test_creator_controls_and_stylized_art(tmp_path):
                 for width, height in [(1280,800), (390,844)]:
                     anonymous.set_viewport_size({'width':width,'height':height})
                     anonymous.goto(url)
-                    expect(anonymous.get_by_role('heading',name='Kleine Geste. Große Freude.')).to_be_visible()
+                    expect(anonymous.get_by_role('heading',name='Wichteln organisieren')).to_be_visible()
                     images = anonymous.locator('[data-festive-photo]')
                     expect(images).to_have_count(2)
                     for image in images.all():

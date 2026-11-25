@@ -93,11 +93,11 @@ def test_language_detection_override_storage_failure_and_switch(tmp_path):
             browser = p.chromium.launch(executable_path=CHROME or p.chromium.executable_path,
                                         args=['--no-sandbox'])
             cases = [
-                ('en-US', None, False, 'en', 'Small gesture.'),
-                ('de-AT', None, False, 'de', 'Kleine Geste.'),
-                ('fr-FR', None, False, 'de', 'Kleine Geste.'),
-                ('en-US', 'de', False, 'de', 'Kleine Geste.'),
-                ('en-US', None, True, 'en', 'Small gesture.'),
+                ('en-US', None, False, 'en', 'Organize Secret Santa'),
+                ('de-AT', None, False, 'de', 'Wichteln organisieren'),
+                ('fr-FR', None, False, 'de', 'Wichteln organisieren'),
+                ('en-US', 'de', False, 'de', 'Wichteln organisieren'),
+                ('en-US', None, True, 'en', 'Organize Secret Santa'),
             ]
             for locale, saved, broken, language, heading in cases:
                 context, page, _, requests = new_page(
@@ -155,23 +155,23 @@ def test_english_all_views_states_headers_dates_and_user_content(tmp_path):
             assert page.locator('b', has_text='User round').count() == 0
 
             page.goto(url + '/#new')
-            expect(page.get_by_role('heading', name='Who are you bringing together?')).to_be_visible()
-            assert page.locator('[name=title]').get_attribute('placeholder') == 'Christmas with favorite people'
+            expect(page.get_by_role('heading', name='Create a Secret Santa round')).to_be_visible()
+            assert page.locator('[name=title]').get_attribute('placeholder') == 'December gift exchange'
 
             page.goto(url + '/#account')
-            expect(page.get_by_role('heading', name='Until next time.')).to_be_visible()
+            expect(page.get_by_role('heading', name='My account')).to_be_visible()
             expect(page.get_by_text('owner@example.invalid', exact=True)).to_be_visible()
 
             page.goto(url + '/#privacy')
-            expect(page.get_by_role('heading', name='Private stays personal.')).to_be_visible()
+            expect(page.get_by_role('heading', name='Privacy and retention')).to_be_visible()
             expect(page.get_by_role('heading', name='What is stored?')).to_be_visible()
             expect(page.get_by_role('heading', name='Public join links')).to_be_visible()
 
             page.goto(url + '/#about')
-            expect(page.get_by_role('heading', name='For genuine anticipation.')).to_be_visible()
+            expect(page.get_by_role('heading', name='About Wichtelwerk')).to_be_visible()
 
             page.goto(url + '/#token=secret')
-            expect(page.get_by_role('heading', name='Welcome to Wichtelwerk.')).to_be_visible()
+            expect(page.get_by_role('heading', name='Confirm sign-in')).to_be_visible()
 
             page.goto(url + '/#event=event-1')
             expect(page.get_by_text('1 accepted · 1 awaiting reply · 1 declined', exact=True)).to_be_visible()
@@ -211,6 +211,31 @@ def test_english_all_views_states_headers_dates_and_user_content(tmp_path):
             assert any(method == 'POST' and language == 'en' for method, _, language, _ in requests)
             assert not page.evaluate('document.documentElement.scrollWidth > innerWidth')
             context.close()
+            browser.close()
+    finally:
+        server.shutdown()
+        thread.join(timeout=5)
+
+
+def test_waiting_state_uses_neutral_copy_in_both_languages(tmp_path):
+    app = app_for(tmp_path)
+    server, thread, url = serve(app)
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch(executable_path=CHROME or p.chromium.executable_path,
+                                        args=['--no-sandbox'])
+            for locale, heading, label in [
+                ('de-DE', 'Auslosung steht noch aus', 'AUSLOSUNG'),
+                ('en-US', 'The draw has not taken place yet', 'DRAW'),
+            ]:
+                context, page, _, _ = new_page(
+                    browser, url, locale=locale,
+                    user={'id': 9, 'email': 'owner@example.invalid', 'language': None})
+                page.goto(url + '/#event=event-1')
+                expect(page.get_by_role('heading', name=heading, exact=True)).to_be_visible()
+                expect(page.locator('.card.dark .eyebrow')).to_have_text(label)
+                assert 'PSSST' not in page.locator('body').inner_text()
+                context.close()
             browser.close()
     finally:
         server.shutdown()

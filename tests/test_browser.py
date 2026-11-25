@@ -26,7 +26,7 @@ def test_browser_round_lifecycle(tmp_path):
             expect(page.locator('#notice')).to_contain_text('Mailserver')
             token=re.search(r'#token=([^\s]+)',app.extensions['outbox'][-1]['body']).group(1)
             page.goto(url+'/#token='+token)
-            page.get_by_role('button',name='Sicher anmelden').click()
+            page.get_by_role('button',name='Anmelden',exact=True).click()
             expect(page.get_by_role('heading',name='Meine Wichtelrunden')).to_be_visible()
             return page
         def api(page,path,payload=None):
@@ -86,7 +86,7 @@ def test_production_public_browser():
         page.on('pageerror',lambda e:errors.append(str(e)))
         response=page.goto(os.environ['WICHTEL_TEST_URL'].rstrip('/'))
         assert response.status==200
-        expect(page.get_by_role('heading',name='Kleine Geste. Große Freude.')).to_be_visible()
+        expect(page.get_by_role('heading',name='Wichteln organisieren')).to_be_visible()
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
         page.screenshot(path='production-mobile.png',full_page=True)
         page.goto(os.environ['WICHTEL_TEST_URL'].rstrip('/')+'/#login')
